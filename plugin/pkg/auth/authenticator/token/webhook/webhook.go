@@ -18,6 +18,9 @@ limitations under the License.
 package webhook
 
 import (
+	"errors"
+	"net/http"
+	"strings"
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -39,8 +42,8 @@ var (
 
 const retryBackoff = 500 * time.Millisecond
 
-// Ensure WebhookTokenAuthenticator implements the authenticator.Token interface.
-var _ authenticator.Token = (*WebhookTokenAuthenticator)(nil)
+// Ensure WebhookTokenAuthenticator implements the authenticator.Request interface.
+var _ authenticator.Request = (*WebhookTokenAuthenticator)(nil)
 
 type WebhookTokenAuthenticator struct {
 	tokenReview    authenticationclient.TokenReviewInterface
@@ -68,10 +71,51 @@ func newWithBackoff(tokenReview authenticationclient.TokenReviewInterface, ttl, 
 	return &WebhookTokenAuthenticator{tokenReview, cache.NewLRUExpireCache(1024), ttl, initialBackoff}, nil
 }
 
-// AuthenticateToken implements the authenticator.Token interface.
-func (w *WebhookTokenAuthenticator) AuthenticateToken(token string) (user.Info, bool, error) {
+var missingToken = errors.New("missing bearer token")
+var invalidToken = errors.New("invalid bearer token")
+
+func extractToken(req *http.Request) (string, error) {
+	auth := strings.TrimSpace(req.Header.Get("Authorization"))
+	if auth == "" {
+		return "", missingToken
+	}
+	parts := strings.Split(auth, " ")
+	if len(parts) < 2 || strings.ToLower(parts[0]) != "bearer" {
+		return "", invalidToken
+	}
+
+	token := parts[1]
+
+	// Empty bearer tokens aren't valid
+	if len(token) == 0 {
+		return "", invalidToken
+	}
+
+	return token, nil
+}
+
+func extractExtra(req *http.Request) map[string]authentication.ExtraValue {
+	var extraHeaders = []string{"x-goog-iam-authorization-token"}
+
+	var extra = map[string]authentication.ExtraValue{}
+
+	for _, k := range extraHeaders {
+		extra[k] = req.Header[k]
+	}
+
+	return extra
+}
+
+// AuthenticateToken implements the authenticator.AuthenticateRequest interface.
+func (w *WebhookTokenAuthenticator) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
+	token, err := extractToken(req)
+
+	if err != nil {
+		return nil, false, err
+	}
+
 	r := &authentication.TokenReview{
-		Spec: authentication.TokenReviewSpec{Token: token},
+		Spec: authentication.TokenReviewSpec{Token: token, Extra: extractExtra(req)},
 	}
 	if entry, ok := w.responseCache.Get(r.Spec); ok {
 		r.Status = entry.(authentication.TokenReviewStatus)
@@ -91,7 +135,7 @@ func (w *WebhookTokenAuthenticator) AuthenticateToken(token string) (user.Info, 
 		w.responseCache.Add(r.Spec, result.Status, w.ttl)
 	}
 	if !r.Status.Authenticated {
-		return nil, false, nil
+		return nil, false, invalidToken
 	}
 
 	var extra map[string][]string

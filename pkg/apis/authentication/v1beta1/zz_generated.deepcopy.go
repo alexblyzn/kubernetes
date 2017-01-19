@@ -50,6 +50,9 @@ func DeepCopy_v1beta1_TokenReview(in interface{}, out interface{}, c *conversion
 		if err := v1.DeepCopy_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
 			return err
 		}
+		if err := DeepCopy_v1beta1_TokenReviewSpec(&in.Spec, &out.Spec, c); err != nil {
+			return err
+		}
 		if err := DeepCopy_v1beta1_TokenReviewStatus(&in.Status, &out.Status, c); err != nil {
 			return err
 		}
@@ -62,6 +65,17 @@ func DeepCopy_v1beta1_TokenReviewSpec(in interface{}, out interface{}, c *conver
 		in := in.(*TokenReviewSpec)
 		out := out.(*TokenReviewSpec)
 		*out = *in
+		if in.Extra != nil {
+			in, out := &in.Extra, &out.Extra
+			*out = make(map[string]ExtraValue)
+			for key, val := range *in {
+				if newVal, err := c.DeepCopy(&val); err != nil {
+					return err
+				} else {
+					(*out)[key] = *newVal.(*ExtraValue)
+				}
+			}
+		}
 		return nil
 	}
 }

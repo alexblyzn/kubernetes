@@ -58,6 +58,7 @@ type TokenReview struct {
 type TokenReviewSpec struct {
 	// Token is the opaque bearer token.
 	Token string
+	Extra map[string][]string
 }
 
 // TokenReviewStatus is the result of the token authentication request.

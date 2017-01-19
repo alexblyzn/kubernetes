@@ -151,7 +151,7 @@ func (config AuthenticatorConfig) New() (authenticator.Request, *spec.SecurityDe
 		hasTokenAuth = true
 	}
 	if len(config.WebhookTokenAuthnConfigFile) > 0 {
-		webhookTokenAuth, err := newWebhookTokenAuthenticator(config.WebhookTokenAuthnConfigFile, config.WebhookTokenAuthnCacheTTL)
+		webhookTokenAuth, err := webhook.New(config.WebhookTokenAuthnConfigFile, config.WebhookTokenAuthnCacheTTL)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -286,13 +286,4 @@ func newAuthenticatorFromKeystoneURL(keystoneURL string, keystoneCAFile string) 
 	}
 
 	return basicauth.New(keystoneAuthenticator), nil
-}
-
-func newWebhookTokenAuthenticator(webhookConfigFile string, ttl time.Duration) (authenticator.Request, error) {
-	webhookTokenAuthenticator, err := webhook.New(webhookConfigFile, ttl)
-	if err != nil {
-		return nil, err
-	}
-
-	return bearertoken.New(webhookTokenAuthenticator), nil
 }

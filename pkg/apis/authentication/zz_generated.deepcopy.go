@@ -50,6 +50,9 @@ func DeepCopy_authentication_TokenReview(in interface{}, out interface{}, c *con
 		if err := api.DeepCopy_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
 			return err
 		}
+		if err := DeepCopy_authentication_TokenReviewSpec(&in.Spec, &out.Spec, c); err != nil {
+			return err
+		}
 		if err := DeepCopy_authentication_TokenReviewStatus(&in.Status, &out.Status, c); err != nil {
 			return err
 		}
@@ -62,6 +65,17 @@ func DeepCopy_authentication_TokenReviewSpec(in interface{}, out interface{}, c 
 		in := in.(*TokenReviewSpec)
 		out := out.(*TokenReviewSpec)
 		*out = *in
+		if in.Extra != nil {
+			in, out := &in.Extra, &out.Extra
+			*out = make(map[string][]string)
+			for key, val := range *in {
+				if newVal, err := c.DeepCopy(&val); err != nil {
+					return err
+				} else {
+					(*out)[key] = *newVal.(*[]string)
+				}
+			}
+		}
 		return nil
 	}
 }

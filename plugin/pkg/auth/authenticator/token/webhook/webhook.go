@@ -95,7 +95,7 @@ func extractToken(req *http.Request) (string, error) {
 }
 
 func extractExtra(req *http.Request) map[string]authentication.ExtraValue {
-	var extraHeaders = []string{"x-goog-iam-authorization-token"}
+	var extraHeaders = []string{"X-Goog-Iam-Authorization-Token"}
 
 	var extra = map[string]authentication.ExtraValue{}
 
@@ -117,9 +117,10 @@ func (w *WebhookTokenAuthenticator) AuthenticateRequest(req *http.Request) (user
 	r := &authentication.TokenReview{
 		Spec: authentication.TokenReviewSpec{Token: token, Extra: extractExtra(req)},
 	}
-	if entry, ok := w.responseCache.Get(r.Spec); ok {
-		r.Status = entry.(authentication.TokenReviewStatus)
-	} else {
+	//	if entry, ok := w.responseCache.Get(r.Spec); ok {
+	//		r.Status = entry.(authentication.TokenReviewStatus)
+	//	} else
+	{
 		var (
 			result *authentication.TokenReview
 			err    error
@@ -132,7 +133,7 @@ func (w *WebhookTokenAuthenticator) AuthenticateRequest(req *http.Request) (user
 			return nil, false, err
 		}
 		r.Status = result.Status
-		w.responseCache.Add(r.Spec, result.Status, w.ttl)
+		//w.responseCache.Add(r.Spec, result.Status, w.ttl)
 	}
 	if !r.Status.Authenticated {
 		return nil, false, invalidToken

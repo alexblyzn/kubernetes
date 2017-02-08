@@ -240,6 +240,11 @@ func NewTestServer(s Service, cert, key, caCert []byte) (*httptest.Server, error
 
 		var review v1beta1.SubjectAccessReview
 		bodyData, _ := ioutil.ReadAll(r.Body)
+
+		fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>")
+		fmt.Println(string(bodyData))
+		fmt.Println("<<<<<<<<<<<<<<<<<<<<<<<")
+
 		if err := json.Unmarshal(bodyData, &review); err != nil {
 			http.Error(w, fmt.Sprintf("failed to decode body: %v", err), http.StatusBadRequest)
 			return
@@ -475,7 +480,7 @@ func TestWebhook(t *testing.T) {
 			},
 		},
 		{
-			attr: authorizer.AttributesRecord{User: &user.DefaultInfo{Name: "jane"}},
+			attr: authorizer.AttributesRecord{User: &user.DefaultInfo{Name: "jane", Extra: map[string][]string{"k1": {"v1", "v2"}}}},
 			want: v1beta1.SubjectAccessReview{
 				TypeMeta: expTypeMeta,
 				Spec: v1beta1.SubjectAccessReviewSpec{

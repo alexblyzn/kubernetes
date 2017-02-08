@@ -18,6 +18,7 @@ limitations under the License.
 package webhook
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
@@ -95,7 +96,7 @@ func extractToken(req *http.Request) (string, error) {
 }
 
 func extractExtra(req *http.Request) map[string]authentication.ExtraValue {
-	var extraHeaders = []string{"X-Goog-Iam-Authorization-Token"}
+	var extraHeaders = []string{"X-Goog-Iam-Authorization-Token", "More"}
 
 	var extra = map[string]authentication.ExtraValue{}
 
@@ -117,10 +118,17 @@ func (w *WebhookTokenAuthenticator) AuthenticateRequest(req *http.Request) (user
 	r := &authentication.TokenReview{
 		Spec: authentication.TokenReviewSpec{Token: token, Extra: extractExtra(req)},
 	}
-	//	if entry, ok := w.responseCache.Get(r.Spec); ok {
-	//		r.Status = entry.(authentication.TokenReviewStatus)
-	//	} else
-	{
+
+	rKeyBytes, err := json.Marshal(r.Spec)
+	if err != nil {
+		return nil, false, err
+	}
+
+	rKey := string(rKeyBytes)
+
+	if entry, ok := w.responseCache.Get(rKey); ok {
+		r.Status = entry.(authentication.TokenReviewStatus)
+	} else {
 		var (
 			result *authentication.TokenReview
 			err    error
@@ -133,7 +141,7 @@ func (w *WebhookTokenAuthenticator) AuthenticateRequest(req *http.Request) (user
 			return nil, false, err
 		}
 		r.Status = result.Status
-		//w.responseCache.Add(r.Spec, result.Status, w.ttl)
+		w.responseCache.Add(rKey, result.Status, w.ttl)
 	}
 	if !r.Status.Authenticated {
 		return nil, false, invalidToken

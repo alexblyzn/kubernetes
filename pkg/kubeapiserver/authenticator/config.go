@@ -46,22 +46,23 @@ import (
 )
 
 type AuthenticatorConfig struct {
-	Anonymous                   bool
-	AnyToken                    bool
-	BasicAuthFile               string
-	ClientCAFile                string
-	TokenAuthFile               string
-	OIDCIssuerURL               string
-	OIDCClientID                string
-	OIDCCAFile                  string
-	OIDCUsernameClaim           string
-	OIDCGroupsClaim             string
-	ServiceAccountKeyFiles      []string
-	ServiceAccountLookup        bool
-	KeystoneURL                 string
-	KeystoneCAFile              string
-	WebhookTokenAuthnConfigFile string
-	WebhookTokenAuthnCacheTTL   time.Duration
+	Anonymous                     bool
+	AnyToken                      bool
+	BasicAuthFile                 string
+	ClientCAFile                  string
+	TokenAuthFile                 string
+	OIDCIssuerURL                 string
+	OIDCClientID                  string
+	OIDCCAFile                    string
+	OIDCUsernameClaim             string
+	OIDCGroupsClaim               string
+	ServiceAccountKeyFiles        []string
+	ServiceAccountLookup          bool
+	KeystoneURL                   string
+	KeystoneCAFile                string
+	WebhookTokenAuthnConfigFile   string
+	WebhookTokenAuthnCacheTTL     time.Duration
+	WebhookTokenAuthnExtraHeaders []string
 
 	RequestHeaderConfig *genericauthenticator.RequestHeaderConfig
 
@@ -151,7 +152,7 @@ func (config AuthenticatorConfig) New() (authenticator.Request, *spec.SecurityDe
 		hasTokenAuth = true
 	}
 	if len(config.WebhookTokenAuthnConfigFile) > 0 {
-		webhookTokenAuth, err := webhook.New(config.WebhookTokenAuthnConfigFile, config.WebhookTokenAuthnCacheTTL)
+		webhookTokenAuth, err := webhook.New(config.WebhookTokenAuthnConfigFile, config.WebhookTokenAuthnCacheTTL, config.WebhookTokenAuthnExtraHeaders)
 		if err != nil {
 			return nil, nil, err
 		}

@@ -13,6 +13,7 @@ go_library(
         "delegating.go",
         "loopback.go",
         "requestheader.go",
+        "webhook.go",
     ],
     tags = ["automanaged"],
     deps = [

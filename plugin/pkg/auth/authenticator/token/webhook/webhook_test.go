@@ -153,7 +153,7 @@ func authenticateToken(w *WebhookTokenAuthenticator, token string) (user.Info, b
 	}
 
 	req.Header.Add("Authorization", "Bearer "+token)
-	req.Header.Add("X-Goog-Iam-Authorization-Token", "IaMaToKen!")
+	req.Header.Add("x-extra-auth-param", "IaMaToKen!")
 
 	return w.AuthenticateRequest(req)
 }
@@ -206,7 +206,7 @@ func newTokenAuthenticator(serverURL string, clientCert, clientKey, ca []byte, c
 		return nil, err
 	}
 
-	return newWithBackoff(c, cacheTime, 0)
+	return newWithBackoff(c, cacheTime, 0, []string{"x-extra-auth-param"})
 }
 
 func TestTLSConfig(t *testing.T) {

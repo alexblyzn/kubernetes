@@ -51,25 +51,26 @@ type WebhookTokenAuthenticator struct {
 	responseCache  *cache.LRUExpireCache
 	ttl            time.Duration
 	initialBackoff time.Duration
+	extraHeaders   []string
 }
 
 // NewFromInterface creates a webhook authenticator using the given tokenReview client
-func NewFromInterface(tokenReview authenticationclient.TokenReviewInterface, ttl time.Duration) (*WebhookTokenAuthenticator, error) {
-	return newWithBackoff(tokenReview, ttl, retryBackoff)
+func NewFromInterface(tokenReview authenticationclient.TokenReviewInterface, ttl time.Duration, extraHeaders []string) (*WebhookTokenAuthenticator, error) {
+	return newWithBackoff(tokenReview, ttl, retryBackoff, extraHeaders)
 }
 
 // New creates a new WebhookTokenAuthenticator from the provided kubeconfig file.
-func New(kubeConfigFile string, ttl time.Duration) (*WebhookTokenAuthenticator, error) {
+func New(kubeConfigFile string, ttl time.Duration, extraHeaders []string) (*WebhookTokenAuthenticator, error) {
 	tokenReview, err := tokenReviewInterfaceFromKubeconfig(kubeConfigFile)
 	if err != nil {
 		return nil, err
 	}
-	return newWithBackoff(tokenReview, ttl, retryBackoff)
+	return newWithBackoff(tokenReview, ttl, retryBackoff, extraHeaders)
 }
 
 // newWithBackoff allows tests to skip the sleep.
-func newWithBackoff(tokenReview authenticationclient.TokenReviewInterface, ttl, initialBackoff time.Duration) (*WebhookTokenAuthenticator, error) {
-	return &WebhookTokenAuthenticator{tokenReview, cache.NewLRUExpireCache(1024), ttl, initialBackoff}, nil
+func newWithBackoff(tokenReview authenticationclient.TokenReviewInterface, ttl, initialBackoff time.Duration, extraHeaders []string) (*WebhookTokenAuthenticator, error) {
+	return &WebhookTokenAuthenticator{tokenReview, cache.NewLRUExpireCache(1024), ttl, initialBackoff, extraHeaders}, nil
 }
 
 var missingToken = errors.New("missing bearer token")
@@ -95,12 +96,10 @@ func extractToken(req *http.Request) (string, error) {
 	return token, nil
 }
 
-func extractExtra(req *http.Request) map[string]authentication.ExtraValue {
-	var extraHeaders = []string{"X-Goog-Iam-Authorization-Token", "More"}
-
+func (w *WebhookTokenAuthenticator) extractExtra(req *http.Request) map[string]authentication.ExtraValue {
 	var extra = map[string]authentication.ExtraValue{}
 
-	for _, k := range extraHeaders {
+	for _, k := range w.extraHeaders {
 		extra[k] = req.Header[k]
 	}
 
@@ -116,7 +115,7 @@ func (w *WebhookTokenAuthenticator) AuthenticateRequest(req *http.Request) (user
 	}
 
 	r := &authentication.TokenReview{
-		Spec: authentication.TokenReviewSpec{Token: token, Extra: extractExtra(req)},
+		Spec: authentication.TokenReviewSpec{Token: token, Extra: w.extractExtra(req)},
 	}
 
 	rKeyBytes, err := json.Marshal(r.Spec)

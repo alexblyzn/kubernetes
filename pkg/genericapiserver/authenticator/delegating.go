@@ -50,6 +50,8 @@ type DelegatingAuthenticatorConfig struct {
 	ClientCAFile string
 
 	RequestHeaderConfig *RequestHeaderConfig
+
+	WebHookConfig *WebHookConfig
 }
 
 func (c DelegatingAuthenticatorConfig) New() (authenticator.Request, *spec.SecurityDefinitions, error) {
@@ -84,7 +86,11 @@ func (c DelegatingAuthenticatorConfig) New() (authenticator.Request, *spec.Secur
 	}
 
 	if c.TokenAccessReviewClient != nil {
-		tokenAuth, err := webhooktoken.NewFromInterface(c.TokenAccessReviewClient, c.CacheTTL)
+		extraHeaders := []string{}
+		if c.WebHookConfig != nil {
+			extraHeaders = c.WebHookConfig.ExtraHeaders
+		}
+		tokenAuth, err := webhooktoken.NewFromInterface(c.TokenAccessReviewClient, c.CacheTTL, extraHeaders)
 		if err != nil {
 			return nil, nil, err
 		}

@@ -142,7 +142,7 @@ func (w *WebhookTokenAuthenticator) AuthenticateRequest(req *http.Request) (user
 		w.responseCache.Add(rKey, result.Status, w.ttl)
 	}
 	if !r.Status.Authenticated {
-		return nil, false, invalidToken
+		return nil, false, nil
 	}
 
 	var extra map[string][]string

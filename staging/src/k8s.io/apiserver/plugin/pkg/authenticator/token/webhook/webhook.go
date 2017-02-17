@@ -72,24 +72,23 @@ func newWithBackoff(tokenReview authenticationclient.TokenReviewInterface, ttl, 
 	return &WebhookTokenAuthenticator{tokenReview, cache.NewLRUExpireCache(1024), ttl, initialBackoff, extraHeaders}, nil
 }
 
-var missingToken = errors.New("missing bearer token")
 var invalidToken = errors.New("invalid bearer token")
 
 func extractToken(req *http.Request) (string, error) {
 	auth := strings.TrimSpace(req.Header.Get("Authorization"))
 	if auth == "" {
-		return "", missingToken
+		return "", nil
 	}
 	parts := strings.Split(auth, " ")
 	if len(parts) < 2 || strings.ToLower(parts[0]) != "bearer" {
-		return "", invalidToken
+		return "", nil
 	}
 
 	token := parts[1]
 
 	// Empty bearer tokens aren't valid
 	if len(token) == 0 {
-		return "", invalidToken
+		return "", nil
 	}
 
 	return token, nil
